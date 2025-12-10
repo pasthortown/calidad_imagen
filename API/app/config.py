@@ -16,7 +16,7 @@ def build_mongodb_uri():
     db = os.getenv("MONGO_DB", "image_enhancer")
 
     if user and password:
-        return f"mongodb://{user}:{password}@{host}:{port}/{db}?authSource=admin"
+        return f"mongodb://{user}:{password}@{host}:{port}/{db}?authSource={db}"
     return f"mongodb://{host}:{port}/{db}"
 
 
