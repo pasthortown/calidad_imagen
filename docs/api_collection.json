@@ -1,0 +1,936 @@
+{
+	"info": {
+		"_postman_id": "image-enhancer-api-collection",
+		"name": "Image Enhancer API v2.2.0",
+		"description": "API para mejora de imágenes y videos usando Real-ESRGAN con múltiples modelos.\n\n## Version\nv2.2.0 - Código optimizado y validado con SonarQube (Quality Gate: PASSED)\n\n## Autenticación\nLa mayoría de endpoints requieren autenticación JWT. Después de hacer login, el token se guarda automáticamente en las variables de colección.\n\n## Modelos disponibles\n- `general_x4`: Fotos reales, retratos, paisajes - Alta calidad (4x)\n- `general_x2`: Fotos reales cuando se necesita escala 2x\n- `anime`: Anime, manga, ilustraciones, arte digital (4x)\n- `anime_video`: Frames de video anime, animaciones\n- `general_v3`: Uso general, más rápido que x4plus\n\n## Face Enhancement\nTodos los endpoints de procesamiento soportan `face_enhance: true` para mejorar rostros usando GFPGAN.\n\n## Documentación\n- Swagger UI: http://localhost:8888/api/docs\n- SonarQube: http://localhost:9000 (admin/admin)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8888",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "test_image_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "test_video_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "System",
+			"description": "Endpoints del sistema (no requieren autenticación)",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "health"]
+						},
+						"description": "Verifica el estado del servicio, MongoDB y GPU"
+					},
+					"response": []
+				},
+				{
+					"name": "API Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/info",
+							"host": ["{{base_url}}"],
+							"path": ["api", "info"]
+						},
+						"description": "Información general del API, endpoints disponibles y modelos"
+					},
+					"response": []
+				},
+				{
+					"name": "List Models",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/models",
+							"host": ["{{base_url}}"],
+							"path": ["api", "models"]
+						},
+						"description": "Lista todos los modelos disponibles para mejora de imágenes con sus características"
+					},
+					"response": []
+				},
+				{
+					"name": "Swagger UI",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/docs",
+							"host": ["{{base_url}}"],
+							"path": ["api", "docs"]
+						},
+						"description": "Documentación interactiva Swagger UI"
+					},
+					"response": []
+				},
+				{
+					"name": "OpenAPI Spec",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/docs/openapi.json",
+							"host": ["{{base_url}}"],
+							"path": ["api", "docs", "openapi.json"]
+						},
+						"description": "Especificación OpenAPI en formato JSON"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"description": "Endpoints de autenticación",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    console.log('Usuario registrado:', jsonData.user.email);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Registra un nuevo usuario.\n\n**Campos requeridos:**\n- `username`: string (3-50 caracteres)\n- `email`: email válido\n- `password`: string (mínimo 6 caracteres)"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('access_token', jsonData.tokens.access_token);",
+									"    pm.collectionVariables.set('refresh_token', jsonData.tokens.refresh_token);",
+									"    console.log('Tokens guardados en variables de colección');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Autentica un usuario y retorna tokens JWT.\n\n**Nota:** Los tokens se guardan automáticamente en las variables de colección."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('access_token', jsonData.tokens.access_token);",
+									"    pm.collectionVariables.set('refresh_token', jsonData.tokens.refresh_token);",
+									"    console.log('Tokens refrescados y guardados');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh_token\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/refresh",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "refresh"]
+						},
+						"description": "Refresca los tokens usando el refresh_token actual."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User (Me)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "me"]
+						},
+						"description": "Obtiene información del usuario autenticado actualmente."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    pm.collectionVariables.set('access_token', '');",
+									"    pm.collectionVariables.set('refresh_token', '');",
+									"    console.log('Tokens eliminados');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh_token\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "logout"]
+						},
+						"description": "Cierra la sesión del usuario e invalida los tokens."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Images",
+			"description": "Endpoints para procesamiento de imágenes",
+			"item": [
+				{
+					"name": "Enhance Image - General X4",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('test_image_id', jsonData.image.id);",
+									"    console.log('Image ID guardado:', jsonData.image.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"image_base64\": \"BASE64_IMAGE_DATA_HERE\",\n    \"filename\": \"test_image.jpg\",\n    \"description\": \"Imagen de prueba\",\n    \"model_type\": \"general_x4\",\n    \"scale\": 4,\n    \"face_enhance\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/images/enhance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images", "enhance"]
+						},
+						"description": "Mejora una imagen usando el modelo general x4 (fotos reales).\n\n**Campos:**\n- `image_base64` (requerido): Imagen en base64\n- `filename` (opcional): Nombre del archivo\n- `description` (opcional): Descripción de la imagen\n- `model_type` (opcional): general_x4, general_x2, anime, anime_video, general_v3\n- `scale` (opcional): Factor de escala 1-4\n- `face_enhance` (opcional): Aplicar mejora de rostros con GFPGAN\n- `output_width` (opcional): Ancho de salida deseado\n- `output_height` (opcional): Alto de salida deseado"
+					},
+					"response": []
+				},
+				{
+					"name": "Enhance Image - Anime",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('test_image_id', jsonData.image.id);",
+									"    console.log('Image ID guardado:', jsonData.image.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"image_base64\": \"BASE64_IMAGE_DATA_HERE\",\n    \"filename\": \"anime_image.png\",\n    \"description\": \"Imagen anime de prueba\",\n    \"model_type\": \"anime\",\n    \"scale\": 4\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/images/enhance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images", "enhance"]
+						},
+						"description": "Mejora una imagen anime/ilustración usando el modelo optimizado para anime."
+					},
+					"response": []
+				},
+				{
+					"name": "Enhance Image - With Face Enhancement",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('test_image_id', jsonData.image.id);",
+									"    console.log('Image ID guardado:', jsonData.image.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"image_base64\": \"BASE64_IMAGE_DATA_HERE\",\n    \"filename\": \"portrait.jpg\",\n    \"description\": \"Retrato con mejora de rostros\",\n    \"model_type\": \"general_x4\",\n    \"scale\": 4,\n    \"face_enhance\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/images/enhance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images", "enhance"]
+						},
+						"description": "Mejora una imagen con face_enhance=true para aplicar GFPGAN y mejorar rostros."
+					},
+					"response": []
+				},
+				{
+					"name": "List Images",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/images?page=1&per_page=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Número de página (default: 1)"
+								},
+								{
+									"key": "per_page",
+									"value": "10",
+									"description": "Items por página (1-100, default: 10)"
+								},
+								{
+									"key": "status",
+									"value": "completed",
+									"description": "Filtrar por estado: pending, processing, completed, failed",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Lista las imágenes del usuario con paginación.\n\n**Parámetros:**\n- `page`: Número de página\n- `per_page`: Items por página (1-100)\n- `status`: Filtrar por estado (pending, processing, completed, failed)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Images - Filter by Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/images?status=completed",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images"],
+							"query": [
+								{
+									"key": "status",
+									"value": "completed"
+								}
+							]
+						},
+						"description": "Lista solo las imágenes completadas."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Image by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/images/{{test_image_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images", "{{test_image_id}}"]
+						},
+						"description": "Obtiene una imagen específica por su ID. Incluye las imágenes en base64 (original y mejorada)."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Image",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/images/{{test_image_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images", "{{test_image_id}}"]
+						},
+						"description": "Elimina una imagen por su ID."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Videos",
+			"description": "Endpoints para procesamiento de videos",
+			"item": [
+				{
+					"name": "Enhance Video - General X4",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 202) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('test_video_id', jsonData.video.id);",
+									"    console.log('Video ID guardado:', jsonData.video.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"video_base64\": \"BASE64_VIDEO_DATA_HERE\",\n    \"filename\": \"test_video.mp4\",\n    \"description\": \"Video de prueba\",\n    \"model_type\": \"general_x4\",\n    \"scale\": 4,\n    \"face_enhance\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/videos/enhance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "videos", "enhance"]
+						},
+						"description": "Inicia el procesamiento de mejora de un video.\n\n**Campos:**\n- `video_base64` (requerido): Video en base64\n- `filename` (requerido): Nombre del archivo con extensión\n- `description` (opcional): Descripción del video\n- `model_type` (opcional): general_x4, general_x2, anime, anime_video, general_v3\n- `scale` (opcional): Factor de escala 1-4\n- `face_enhance` (opcional): Aplicar mejora de rostros\n\n**Nota:** Retorna status 202 (Accepted). El procesamiento es asíncrono, consultar estado con GET /api/videos/{id}"
+					},
+					"response": []
+				},
+				{
+					"name": "Enhance Video - Anime",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 202) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('test_video_id', jsonData.video.id);",
+									"    console.log('Video ID guardado:', jsonData.video.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"video_base64\": \"BASE64_VIDEO_DATA_HERE\",\n    \"filename\": \"anime_video.mp4\",\n    \"description\": \"Video anime de prueba\",\n    \"model_type\": \"anime_video\",\n    \"scale\": 4\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/videos/enhance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "videos", "enhance"]
+						},
+						"description": "Mejora un video anime usando el modelo anime_video optimizado."
+					},
+					"response": []
+				},
+				{
+					"name": "Enhance Video - With Face Enhancement",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 202) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('test_video_id', jsonData.video.id);",
+									"    console.log('Video ID guardado:', jsonData.video.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"video_base64\": \"BASE64_VIDEO_DATA_HERE\",\n    \"filename\": \"video_faces.mp4\",\n    \"description\": \"Video con rostros\",\n    \"model_type\": \"general_x4\",\n    \"scale\": 4,\n    \"face_enhance\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/videos/enhance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "videos", "enhance"]
+						},
+						"description": "Mejora un video con face_enhance=true para aplicar GFPGAN en cada frame."
+					},
+					"response": []
+				},
+				{
+					"name": "List Videos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/videos?page=1&per_page=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "videos"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Número de página (default: 1)"
+								},
+								{
+									"key": "per_page",
+									"value": "10",
+									"description": "Items por página (1-100, default: 10)"
+								},
+								{
+									"key": "status",
+									"value": "completed",
+									"description": "Filtrar por estado: pending, in_progress, completed, error",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Lista los videos del usuario con paginación.\n\n**Parámetros:**\n- `page`: Número de página\n- `per_page`: Items por página (1-100)\n- `status`: Filtrar por estado (pending, in_progress, completed, error)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Videos - In Progress",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/videos?status=in_progress",
+							"host": ["{{base_url}}"],
+							"path": ["api", "videos"],
+							"query": [
+								{
+									"key": "status",
+									"value": "in_progress"
+								}
+							]
+						},
+						"description": "Lista solo los videos que están siendo procesados."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Video by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/videos/{{test_video_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "videos", "{{test_video_id}}"]
+						},
+						"description": "Obtiene un video específico por su ID. Incluye los videos en base64 (original y mejorado) cuando están disponibles."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Video",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/videos/{{test_video_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "videos", "{{test_video_id}}"]
+						},
+						"description": "Elimina un video por su ID."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Error Cases",
+			"description": "Pruebas de casos de error",
+			"item": [
+				{
+					"name": "Auth - Register with Invalid Data",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"ab\",\n    \"email\": \"invalid-email\",\n    \"password\": \"123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Prueba de registro con datos inválidos:\n- username muy corto (< 3 chars)\n- email inválido\n- password muy corta (< 6 chars)"
+					},
+					"response": []
+				},
+				{
+					"name": "Auth - Login with Wrong Credentials",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"noexiste@example.com\",\n    \"password\": \"wrongpassword\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Prueba de login con credenciales incorrectas."
+					},
+					"response": []
+				},
+				{
+					"name": "Images - Without Auth Token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/images",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images"]
+						},
+						"description": "Prueba de acceso a endpoint protegido sin token de autenticación."
+					},
+					"response": []
+				},
+				{
+					"name": "Images - With Invalid Token",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer invalid_token_here"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/images",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images"]
+						},
+						"description": "Prueba de acceso con token inválido."
+					},
+					"response": []
+				},
+				{
+					"name": "Images - Get Non-existent ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/images/000000000000000000000000",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images", "000000000000000000000000"]
+						},
+						"description": "Prueba de obtener imagen con ID que no existe."
+					},
+					"response": []
+				},
+				{
+					"name": "Images - Enhance with Invalid Model",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"image_base64\": \"BASE64_IMAGE_DATA_HERE\",\n    \"model_type\": \"invalid_model\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/images/enhance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images", "enhance"]
+						},
+						"description": "Prueba de mejora de imagen con modelo inválido."
+					},
+					"response": []
+				},
+				{
+					"name": "Images - Enhance with Invalid Scale",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"image_base64\": \"BASE64_IMAGE_DATA_HERE\",\n    \"scale\": 10\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/images/enhance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "images", "enhance"]
+						},
+						"description": "Prueba de mejora con escala inválida (> 4)."
+					},
+					"response": []
+				},
+				{
+					"name": "Videos - Get Non-existent ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/videos/000000000000000000000000",
+							"host": ["{{base_url}}"],
+							"path": ["api", "videos", "000000000000000000000000"]
+						},
+						"description": "Prueba de obtener video con ID que no existe."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

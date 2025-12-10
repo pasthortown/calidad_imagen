@@ -1,0 +1,39 @@
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Dependencias
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Archivos de compilación
+dist/
+build/
+*.egg-info/
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+
+# Claude
+.claude/
