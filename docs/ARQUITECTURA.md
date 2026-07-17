@@ -2,7 +2,7 @@
 
 ## Vision General
 
-Image Enhancer API es un servicio REST que permite mejorar la calidad de imagenes y videos utilizando Real-ESRGAN, una red neuronal de ultima generacion para super-resolucion. El sistema esta construido con Python usando Tornado como framework web asincrono y MongoDB como base de datos. Incluye soporte para procesamiento de video con ffmpeg.
+Image Enhancer API es un servicio REST que permite mejorar la calidad de imagenes y videos utilizando Real-ESRGAN, una red neuronal de ultima generacion para super-resolucion. Ademas, incluye funcionalidad de colorización de imagenes y videos en blanco y negro mediante DeOldify ONNX. El sistema esta construido con Python usando Tornado como framework web asincrono y MongoDB como base de datos. Incluye soporte para procesamiento de video con ffmpeg.
 
 ## Diagrama de Arquitectura
 
@@ -26,9 +26,13 @@ Image Enhancer API es un servicio REST que permite mejorar la calidad de imagene
 │  │  │  Tornado  │ │Real-ESRGAN│   │  │  │ users   │ │ images  │   │  │
 │  │  │  Server   │ │  + GPU    │   │  │  └─────────┘ └─────────┘   │  │
 │  │  └───────────┘ ├───────────┤   │  │  ┌─────────┐ ┌─────────┐   │  │
-│  │                │  ffmpeg   │   │  │  │ videos  │ │ refresh │   │  │
-│  │                │ (video)   │   │  │  │         │ │ _tokens │   │  │
-│  │                └───────────┘   │  │  └─────────┘ └─────────┘   │  │
+│  │                │  DeOldify │   │  │  │ videos  │ │ refresh │   │  │
+│  │                │  (color)  │   │  │  │         │ │ _tokens │   │  │
+│  │                ├───────────┤   │  │  └─────────┘ └─────────┘   │  │
+│  │                │  ffmpeg   │   │  │  ┌───────────────────────┐ │  │
+│  │                │ (video)   │   │  │  │ colorized_images/     │ │  │
+│  │                └───────────┘   │  │  │ colorized_videos      │ │  │
+│  │                                │  │  └───────────────────────┘ │  │
 │  └─────────────────────────────────┘  └─────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -68,22 +72,22 @@ deploy:
 │                           API GATEWAY                                    │
 │                         (Tornado Server)                                 │
 │                                                                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │
-│  │    Auth     │  │   Images    │  │   Videos    │  │   System    │    │
-│  │  Handlers   │  │  Handlers   │  │  Handlers   │  │  Handlers   │    │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘    │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐          │
+│  │  Auth   │ │ Images  │ │ Videos  │ │Colorize │ │ System  │          │
+│  │Handlers │ │Handlers │ │Handlers │ │Handlers │ │Handlers │          │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘          │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
-        ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
-        │  Auth Service │  │ Image Service │  │ Video Service │
-        │               │  │               │  │               │
-        │ - Register    │  │ - Enhance     │  │ - Enhance     │
-        │ - Login       │  │ - Resize      │  │ - Extract     │
-        │ - Refresh     │  │ - List        │  │   frames      │
-        │ - Logout      │  │ - Get/Delete  │  │ - Merge MKV   │
-        └───────────────┘  └───────────────┘  └───────────────┘
+   ┌───────────────┐ ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
+   │  Auth Service │ │ Image Service │ │ Video Service │ │Colorize Serv. │
+   │               │ │               │ │               │ │               │
+   │ - Register    │ │ - Enhance     │ │ - Enhance     │ │ - Colorize    │
+   │ - Login       │ │ - Resize      │ │ - Extract     │ │   Images      │
+   │ - Refresh     │ │ - List        │ │   frames      │ │ - Colorize    │
+   │ - Logout      │ │ - Get/Delete  │ │ - Merge MKV   │ │   Videos      │
+   └───────────────┘ └───────────────┘ └───────────────┘ └───────────────┘
                 │                   │                   │
                 │                   ▼                   ▼
                 │          ┌───────────────┐   ┌───────────────┐
@@ -133,6 +137,15 @@ Los handlers de Tornado manejan las peticiones HTTP y las respuestas.
 - **VideoListHandler**: Listado paginado de videos con status
 - **VideoDetailHandler**: Detalle, descarga y eliminacion de videos
 
+#### Colorization Handlers (`app/handlers/colorize.py`)
+- **ColorizeInfoHandler**: Informacion del servicio de colorizacion
+- **ColorizeImageHandler**: Colorizacion de imagenes en blanco y negro
+- **ColorizeImageListHandler**: Listado paginado de imagenes coloreadas
+- **ColorizeImageDetailHandler**: Detalle y eliminacion de imagenes coloreadas
+- **ColorizeVideoHandler**: Inicia procesamiento asincrono de colorizacion de videos
+- **ColorizeVideoListHandler**: Listado paginado de videos coloreados
+- **ColorizeVideoDetailHandler**: Detalle, descarga y eliminacion de videos coloreados
+
 #### System Handlers (`app/handlers/health.py`)
 - **HealthHandler**: Verificacion del estado del sistema
 - **InfoHandler**: Informacion sobre el API
@@ -172,6 +185,16 @@ Gestiona el procesamiento de videos:
 
 **Nota tecnica:** Se usa `/usr/bin/ffmpeg` en lugar del ffmpeg de Conda porque el de Conda no incluye el encoder libx264.
 
+#### Colorize Service (`app/services/colorize_service.py`)
+Gestiona la colorizacion de imagenes y videos en blanco y negro:
+- Modelo DeOldify en formato ONNX para inferencia rapida
+- Descarga automatica del modelo desde Hugging Face
+- Procesamiento de imagenes con tecnica LAB para preservar luminosidad original
+- Procesamiento de videos frame a frame con ffmpeg
+- Soporte para GPU (CUDA) y CPU
+- Almacenamiento de resultados en disco
+- Gestion del historial de colorizaciones
+
 ### 3. Data Layer
 
 #### Models (`app/models/`)
@@ -180,6 +203,7 @@ Definiciones de modelos usando Pydantic:
 - **Image models**: ImageEnhanceRequest, ImageResponse, ImageDetailResponse
 - **Video models**: VideoEnhanceRequest, VideoResponse, VideoDetailResponse
 - **Token models**: TokenPair, TokenData, RefreshTokenRequest
+- **Colorize models**: ColorizeImageRequest, ColorizeVideoRequest, ColorizeImageResponse, ColorizeVideoResponse, ColorizeInfoResponse
 
 #### Campos en Video models:
 | Campo | Tipo | Descripcion |
@@ -354,6 +378,7 @@ calidad_imagen/
 │       │   ├── auth.py     # Endpoints de auth
 │       │   ├── images.py   # Endpoints de imágenes
 │       │   ├── videos.py   # Endpoints de videos
+│       │   ├── colorize.py # Endpoints de colorización
 │       │   ├── health.py   # Endpoints de sistema
 │       │   └── swagger.py  # Swagger UI
 │       │
@@ -361,13 +386,15 @@ calidad_imagen/
 │       │   ├── __init__.py
 │       │   ├── user.py     # Modelos de usuario
 │       │   ├── image.py    # Modelos de imagen
-│       │   └── video.py    # Modelos de video
+│       │   ├── video.py    # Modelos de video
+│       │   └── colorize.py # Modelos de colorización
 │       │
 │       ├── services/       # Logica de negocio
 │       │   ├── __init__.py
-│       │   ├── auth_service.py   # Servicio auth
-│       │   ├── image_service.py  # Servicio imagenes + Real-ESRGAN + GFPGAN
-│       │   └── video_service.py  # Servicio videos + ffmpeg
+│       │   ├── auth_service.py      # Servicio auth
+│       │   ├── image_service.py     # Servicio imagenes + Real-ESRGAN + GFPGAN
+│       │   ├── video_service.py     # Servicio videos + ffmpeg
+│       │   └── colorize_service.py  # Servicio colorización + DeOldify
 │       │
 │       └── utils/          # Utilidades
 │           ├── __init__.py
@@ -383,7 +410,9 @@ calidad_imagen/
 │   ├── test_all_models.py
 │   ├── test_all_models_face_enhance.py
 │   ├── test_video.py
-│   └── test_video_face_enhance.py
+│   ├── test_video_face_enhance.py
+│   ├── test_colorize_image.py    # Test de colorización de imagen
+│   └── test_colorize_video.py    # Test de colorización de video
 │
 └── docs/
     ├── ARQUITECTURA.md
@@ -471,6 +500,56 @@ calidad_imagen/
   token: String,           // Único
   expires_at: Date,        // TTL index
   created_at: Date
+}
+```
+
+### Coleccion: colorized_images
+```javascript
+{
+  _id: ObjectId,
+  user_id: String,
+  original_filename: String,
+  description: String,
+  original_path: String,       // Ruta al archivo B/N en disco
+  colorized_path: String,      // Ruta al archivo coloreado en disco
+  original_width: Number,
+  original_height: Number,
+  colorized_width: Number,
+  colorized_height: Number,
+  status: String,              // processing, completed, failed
+  error_message: String,
+  processing_time_ms: Number,
+  gpu_used: Boolean,
+  created_at: Date,
+  completed_at: Date
+}
+```
+
+### Coleccion: colorized_videos
+```javascript
+{
+  _id: ObjectId,
+  user_id: String,
+  original_filename: String,
+  description: String,
+  original_path: String,       // Ruta al video B/N original
+  colorized_path: String,      // Ruta al video coloreado (MKV)
+  // Metadata del video
+  duration_seconds: Number,
+  fps: Number,
+  frame_count: Number,
+  original_width: Number,
+  original_height: Number,
+  colorized_width: Number,
+  colorized_height: Number,
+  // Status de procesamiento
+  status: String,              // pending, in_progress, completed, error
+  error_message: String,
+  processing_time_ms: Number,
+  gpu_used: Boolean,
+  frames_processed: Number,    // Progreso del procesamiento
+  created_at: Date,
+  completed_at: Date
 }
 ```
 
@@ -594,6 +673,8 @@ API_IP=192.168.86.20
 | numpy | 1.26+ | Operaciones numericas |
 | ffmpeg | 4.x | Procesamiento de video (/usr/bin/ffmpeg con libx264) |
 | gfpgan | 1.3.8+ | Mejora de rostros |
+| onnxruntime-gpu | 1.16+ | Inferencia ONNX para DeOldify (colorizacion) |
+| huggingface-hub | 0.19+ | Descarga de modelos desde Hugging Face |
 
 ## Comandos Docker
 

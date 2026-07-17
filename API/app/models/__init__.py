@@ -27,6 +27,18 @@ from app.models.video import (
     VideoDetailResponse,
     VideoListResponse,
 )
+from app.models.colorize import (
+    ColorizeStatus,
+    ColorizeImageRequest,
+    ColorizeVideoRequest,
+    ColorizeImageResponse,
+    ColorizeImageDetailResponse,
+    ColorizeVideoResponse,
+    ColorizeVideoDetailResponse,
+    ColorizeImageListResponse,
+    ColorizeVideoListResponse,
+    ColorizeInfoResponse,
+)
 
 __all__ = [
     "UserCreate",
@@ -52,4 +64,14 @@ __all__ = [
     "VideoResponse",
     "VideoDetailResponse",
     "VideoListResponse",
+    "ColorizeStatus",
+    "ColorizeImageRequest",
+    "ColorizeVideoRequest",
+    "ColorizeImageResponse",
+    "ColorizeImageDetailResponse",
+    "ColorizeVideoResponse",
+    "ColorizeVideoDetailResponse",
+    "ColorizeImageListResponse",
+    "ColorizeVideoListResponse",
+    "ColorizeInfoResponse",
 ]

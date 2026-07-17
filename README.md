@@ -23,11 +23,13 @@ cd API
 pip install -r requirements.txt
 ```
 
-### 4. Descargar Modelos (opcional, ya incluidos)
+### 4. Descargar Modelos
 
 ```bash
 python download_models.py
 ```
+
+> **Nota:** El modelo de colorización `deoldify.onnx` (~833 MB) **no está incluido en el repositorio** por su tamaño (excede el límite de GitHub). Debe descargarse por separado y colocarse en la carpeta `models/`. El script `API/download_models.py` descarga los pesos de Real-ESRGAN y DeOldify desde Hugging Face; para colorización asegúrate de que `models/deoldify.onnx` exista antes de usar los endpoints de colorize.
 
 ### 5. Iniciar el Servidor
 

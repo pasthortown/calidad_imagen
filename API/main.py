@@ -22,6 +22,13 @@ from app.handlers import (
     ModelsHandler,
     SwaggerUIHandler,
     OpenAPISpecHandler,
+    ColorizeInfoHandler,
+    ColorizeImageHandler,
+    ColorizeImageListHandler,
+    ColorizeImageDetailHandler,
+    ColorizeVideoHandler,
+    ColorizeVideoListHandler,
+    ColorizeVideoDetailHandler,
 )
 
 
@@ -53,6 +60,15 @@ def make_app() -> tornado.web.Application:
         # Documentation endpoints
         (r"/api/docs", SwaggerUIHandler),
         (r"/api/docs/openapi.json", OpenAPISpecHandler),
+
+        # Colorization endpoints
+        (r"/api/colorize/info", ColorizeInfoHandler),
+        (r"/api/colorize/images", ColorizeImageHandler),
+        (r"/api/colorize/images/list", ColorizeImageListHandler),
+        (r"/api/colorize/images/([a-f0-9]{24})", ColorizeImageDetailHandler),
+        (r"/api/colorize/videos", ColorizeVideoHandler),
+        (r"/api/colorize/videos/list", ColorizeVideoListHandler),
+        (r"/api/colorize/videos/([a-f0-9]{24})", ColorizeVideoDetailHandler),
     ]
 
     return tornado.web.Application(
@@ -102,6 +118,16 @@ async def main():
     print("  Documentation:")
     print("    - GET  /api/docs          (Swagger UI)")
     print("    - GET  /api/docs/openapi.json")
+    print("  Colorization:")
+    print("    - GET  /api/colorize/info")
+    print("    - POST /api/colorize/images")
+    print("    - GET  /api/colorize/images/list")
+    print("    - GET  /api/colorize/images/{id}")
+    print("    - DELETE /api/colorize/images/{id}")
+    print("    - POST /api/colorize/videos")
+    print("    - GET  /api/colorize/videos/list")
+    print("    - GET  /api/colorize/videos/{id}")
+    print("    - DELETE /api/colorize/videos/{id}")
     print("\n" + "=" * 50)
 
     # Configurar manejo de señales para cierre graceful

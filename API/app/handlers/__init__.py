@@ -17,6 +17,15 @@ from app.handlers.videos import (
 )
 from app.handlers.health import HealthHandler, InfoHandler, ModelsHandler
 from app.handlers.swagger import SwaggerUIHandler, OpenAPISpecHandler
+from app.handlers.colorize import (
+    ColorizeInfoHandler,
+    ColorizeImageHandler,
+    ColorizeImageListHandler,
+    ColorizeImageDetailHandler,
+    ColorizeVideoHandler,
+    ColorizeVideoListHandler,
+    ColorizeVideoDetailHandler,
+)
 
 __all__ = [
     "RegisterHandler",
@@ -35,4 +44,11 @@ __all__ = [
     "ModelsHandler",
     "SwaggerUIHandler",
     "OpenAPISpecHandler",
+    "ColorizeInfoHandler",
+    "ColorizeImageHandler",
+    "ColorizeImageListHandler",
+    "ColorizeImageDetailHandler",
+    "ColorizeVideoHandler",
+    "ColorizeVideoListHandler",
+    "ColorizeVideoDetailHandler",
 ]

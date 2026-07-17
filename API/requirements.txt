@@ -11,13 +11,18 @@ bcrypt>=4.1.2
 
 # Image Processing
 Pillow>=10.2.0
-numpy>=1.26.0,<2.0.0
+numpy>=1.26.0
 opencv-python-headless>=4.8.0
 scipy>=1.11.0
 
-# Deep Learning (Real-ESRGAN)
-torch>=2.0.0
-torchvision>=0.15.0
+# Deep Learning (Real-ESRGAN) - ya incluido en la imagen base pytorch
+# No reinstalar torch/torchvision para preservar la versión CUDA de la imagen base
+
+# ONNX Runtime for DeOldify colorization
+onnxruntime-gpu>=1.17.0
+
+# Hugging Face Hub for model download
+huggingface-hub>=0.19.0
 
 # Utilities
 python-dotenv>=1.0.0

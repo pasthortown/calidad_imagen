@@ -9,6 +9,14 @@ import {
   VideoListResponse,
   ImageDetailResponse,
   VideoDetailResponse,
+  ColorizeImageRequest,
+  ColorizeVideoRequest,
+  ColorizeImageResponse,
+  ColorizeVideoResponse,
+  ColorizeImageListResponse,
+  ColorizeVideoListResponse,
+  ColorizeImageDetailResponse,
+  ColorizeVideoDetailResponse,
 } from '../types/media';
 
 export const mediaService = {
@@ -52,6 +60,51 @@ export const mediaService = {
   async getVideoDetail(id: string): Promise<VideoDetailResponse> {
     const response = await api.get<VideoDetailResponse>(
       API_ENDPOINTS.VIDEOS.DETAIL(id)
+    );
+    return response.data;
+  },
+
+  // Colorization methods
+  async colorizeImage(data: ColorizeImageRequest): Promise<ColorizeImageResponse> {
+    const response = await api.post<ColorizeImageResponse>(
+      API_ENDPOINTS.COLORIZE.IMAGES,
+      data
+    );
+    return response.data;
+  },
+
+  async colorizeVideo(data: ColorizeVideoRequest): Promise<ColorizeVideoResponse> {
+    const response = await api.post<ColorizeVideoResponse>(
+      API_ENDPOINTS.COLORIZE.VIDEOS,
+      data
+    );
+    return response.data;
+  },
+
+  async getColorizedImageHistory(page: number = 1, perPage: number = 10): Promise<ColorizeImageListResponse> {
+    const response = await api.get<ColorizeImageListResponse>(
+      `${API_ENDPOINTS.COLORIZE.IMAGES_LIST}?page=${page}&per_page=${perPage}`
+    );
+    return response.data;
+  },
+
+  async getColorizedVideoHistory(page: number = 1, perPage: number = 10): Promise<ColorizeVideoListResponse> {
+    const response = await api.get<ColorizeVideoListResponse>(
+      `${API_ENDPOINTS.COLORIZE.VIDEOS_LIST}?page=${page}&per_page=${perPage}`
+    );
+    return response.data;
+  },
+
+  async getColorizedImageDetail(id: string): Promise<ColorizeImageDetailResponse> {
+    const response = await api.get<ColorizeImageDetailResponse>(
+      API_ENDPOINTS.COLORIZE.IMAGE_DETAIL(id)
+    );
+    return response.data;
+  },
+
+  async getColorizedVideoDetail(id: string): Promise<ColorizeVideoDetailResponse> {
+    const response = await api.get<ColorizeVideoDetailResponse>(
+      API_ENDPOINTS.COLORIZE.VIDEO_DETAIL(id)
     );
     return response.data;
   },

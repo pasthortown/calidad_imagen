@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { MediaType, ModelType, MODELS } from '../types/media';
+import { MediaType, ModelType, MODELS, ProcessMode } from '../types/media';
 import mediaService from '../services/mediaService';
 import { AxiosError } from 'axios';
 import '../styles/home.css';
@@ -12,6 +12,7 @@ const Home: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State
+  const [processMode, setProcessMode] = useState<ProcessMode>('enhance');
   const [mediaType, setMediaType] = useState<MediaType>('image');
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -104,6 +105,17 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleProcessModeChange = (mode: ProcessMode) => {
+    setProcessMode(mode);
+    setFile(null);
+    setFilePreview(null);
+    setError(null);
+    setSuccess(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   // Process
   const handleProcess = async () => {
     if (!file) {
@@ -119,25 +131,48 @@ const Home: React.FC = () => {
       const base64 = await mediaService.fileToBase64(file);
       const selectedModel = MODELS.find(m => m.id === modelType);
 
-      if (mediaType === 'image') {
-        const response = await mediaService.enhanceImage({
-          image_base64: base64,
-          filename: file.name,
-          model_type: modelType,
-          scale: selectedModel?.scale,
-          face_enhance: faceEnhance,
-        });
+      if (processMode === 'enhance') {
+        // Enhancement mode
+        if (mediaType === 'image') {
+          const response = await mediaService.enhanceImage({
+            image_base64: base64,
+            filename: file.name,
+            model_type: modelType,
+            scale: selectedModel?.scale,
+            face_enhance: faceEnhance,
+          });
 
-        if (response.image.status === 'completed' && response.image.enhanced_base64) {
-          const enhancedFilename = mediaService.getEnhancedFilename(file.name);
-          const mimeType = mediaService.getMimeType(file.name);
-          mediaService.downloadBase64File(
-            response.image.enhanced_base64,
-            enhancedFilename,
-            mimeType
-          );
+          if (response.image.status === 'completed' && response.image.enhanced_base64) {
+            const enhancedFilename = mediaService.getEnhancedFilename(file.name);
+            const mimeType = mediaService.getMimeType(file.name);
+            mediaService.downloadBase64File(
+              response.image.enhanced_base64,
+              enhancedFilename,
+              mimeType
+            );
 
-          setSuccess(`Imagen procesada exitosamente en ${(response.image.processing_time_ms / 1000).toFixed(2)}s. La descarga comenzará automáticamente.`);
+            setSuccess(`Imagen mejorada exitosamente en ${(response.image.processing_time_ms / 1000).toFixed(2)}s. La descarga comenzará automáticamente.`);
+
+            // Reset form
+            setFile(null);
+            setFilePreview(null);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+          } else {
+            setError(response.image.error_message || 'Error al mejorar la imagen');
+          }
+        } else {
+          // Video enhancement
+          await mediaService.enhanceVideo({
+            video_base64: base64,
+            filename: file.name,
+            model_type: modelType,
+            scale: selectedModel?.scale,
+            face_enhance: faceEnhance,
+          });
+
+          setSuccess('Video enviado para mejora. Puedes ver el progreso y descargar el resultado en la sección de Historial.');
 
           // Reset form
           setFile(null);
@@ -145,32 +180,63 @@ const Home: React.FC = () => {
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
-        } else {
-          setError(response.image.error_message || 'Error al procesar la imagen');
+
+          // Redirect to history after a delay
+          setTimeout(() => {
+            navigate('/history');
+          }, 3000);
         }
       } else {
-        // Video processing
-        await mediaService.enhanceVideo({
-          video_base64: base64,
-          filename: file.name,
-          model_type: modelType,
-          scale: selectedModel?.scale,
-          face_enhance: faceEnhance,
-        });
+        // Colorization mode
+        if (mediaType === 'image') {
+          const response = await mediaService.colorizeImage({
+            image_base64: base64,
+            filename: file.name,
+            face_enhance: faceEnhance,
+          });
 
-        setSuccess('Video enviado para procesamiento. Puedes ver el progreso y descargar el resultado en la sección de Historial.');
+          if (response.image.status === 'completed' && response.image.colorized_base64) {
+            const colorizedFilename = file.name.replace(/(\.[^.]+)$/, '_colorized$1');
+            const mimeType = mediaService.getMimeType(file.name);
+            mediaService.downloadBase64File(
+              response.image.colorized_base64,
+              colorizedFilename,
+              mimeType
+            );
 
-        // Reset form
-        setFile(null);
-        setFilePreview(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+            setSuccess(`Imagen coloreada exitosamente en ${(response.image.processing_time_ms / 1000).toFixed(2)}s. La descarga comenzará automáticamente.`);
+
+            // Reset form
+            setFile(null);
+            setFilePreview(null);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+          } else {
+            setError(response.image.error_message || 'Error al colorear la imagen');
+          }
+        } else {
+          // Video colorization
+          await mediaService.colorizeVideo({
+            video_base64: base64,
+            filename: file.name,
+            face_enhance: faceEnhance,
+          });
+
+          setSuccess('Video enviado para colorización. Puedes ver el progreso y descargar el resultado en la sección de Historial.');
+
+          // Reset form
+          setFile(null);
+          setFilePreview(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+
+          // Redirect to history after a delay
+          setTimeout(() => {
+            navigate('/history');
+          }, 3000);
         }
-
-        // Redirect to history after a delay
-        setTimeout(() => {
-          navigate('/history');
-        }, 3000);
       }
     } catch (err) {
       const axiosError = err as AxiosError<{ error?: string; detail?: string }>;
@@ -250,10 +316,40 @@ const Home: React.FC = () => {
         </div>
 
         <div className="process-steps">
-          {/* Step 1: Media Type */}
+          {/* Step 1: Process Mode */}
           <div className="step-card">
             <div className="step-header">
               <span className="step-number">1</span>
+              <h3 className="step-title">Modo de procesamiento</h3>
+            </div>
+            <div className="media-type-selector">
+              <button
+                className={`media-type-btn ${processMode === 'enhance' ? 'selected' : ''}`}
+                onClick={() => handleProcessModeChange('enhance')}
+              >
+                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+                <span className="label">Mejorar calidad</span>
+              </button>
+              <button
+                className={`media-type-btn ${processMode === 'colorize' ? 'selected' : ''}`}
+                onClick={() => handleProcessModeChange('colorize')}
+              >
+                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 2a10 10 0 0 0 0 20" fill="currentColor" opacity="0.3" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span className="label">Colorear B/N</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Step 2: Media Type */}
+          <div className="step-card">
+            <div className="step-header">
+              <span className="step-number">2</span>
               <h3 className="step-title">Tipo de archivo</h3>
             </div>
             <div className="media-type-selector">
@@ -281,10 +377,10 @@ const Home: React.FC = () => {
             </div>
           </div>
 
-          {/* Step 2: File Upload */}
+          {/* Step 3: File Upload */}
           <div className="step-card">
             <div className="step-header">
-              <span className="step-number">2</span>
+              <span className="step-number">3</span>
               <h3 className="step-title">Cargar archivo</h3>
             </div>
             <div
@@ -352,56 +448,115 @@ const Home: React.FC = () => {
             )}
           </div>
 
-          {/* Step 3: Model Selection */}
-          <div className="step-card">
-            <div className="step-header">
-              <span className="step-number">3</span>
-              <h3 className="step-title">Filtro a aplicar</h3>
+          {/* Step 4: Model Selection (only for enhance mode) */}
+          {processMode === 'enhance' && (
+            <div className="step-card">
+              <div className="step-header">
+                <span className="step-number">4</span>
+                <h3 className="step-title">Filtro a aplicar</h3>
+              </div>
+              <div className="model-selector">
+                {MODELS.map((model) => (
+                  <button
+                    key={model.id}
+                    className={`model-btn ${modelType === model.id ? 'selected' : ''}`}
+                    onClick={() => setModelType(model.id)}
+                  >
+                    <span className="model-icon">{renderModelIcon(model.icon)}</span>
+                    <span className="model-name">{model.name}</span>
+                    <span className="model-desc">{model.description}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="model-selector">
-              {MODELS.map((model) => (
-                <button
-                  key={model.id}
-                  className={`model-btn ${modelType === model.id ? 'selected' : ''}`}
-                  onClick={() => setModelType(model.id)}
-                >
-                  <span className="model-icon">{renderModelIcon(model.icon)}</span>
-                  <span className="model-name">{model.name}</span>
-                  <span className="model-desc">{model.description}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
 
-          {/* Step 4: Face Enhancement */}
-          <div className="step-card">
-            <div className="step-header">
-              <span className="step-number">4</span>
-              <h3 className="step-title">Opciones adicionales</h3>
-            </div>
-            <div className="toggle-container">
-              <div className="toggle-info">
-                <div className="toggle-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
+          {/* Step 5: Face Enhancement (only for enhance mode) */}
+          {processMode === 'enhance' && (
+            <div className="step-card">
+              <div className="step-header">
+                <span className="step-number">5</span>
+                <h3 className="step-title">Opciones adicionales</h3>
+              </div>
+              <div className="toggle-container">
+                <div className="toggle-info">
+                  <div className="toggle-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </div>
+                  <div className="toggle-text">
+                    <h4>Mejora de rostros</h4>
+                    <p>Aplica GFPGAN para mejorar rostros en la imagen</p>
+                  </div>
                 </div>
-                <div className="toggle-text">
-                  <h4>Mejora de rostros</h4>
-                  <p>Aplica GFPGAN para mejorar rostros en la imagen</p>
+                <label className={`toggle-switch ${faceEnhance ? 'active' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={faceEnhance}
+                    onChange={(e) => setFaceEnhance(e.target.checked)}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Info for colorization mode */}
+          {processMode === 'colorize' && (
+            <>
+              <div className="step-card">
+                <div className="step-header">
+                  <span className="step-number">4</span>
+                  <h3 className="step-title">Colorización</h3>
+                </div>
+                <div className="colorize-info">
+                  <div className="colorize-info-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                  </div>
+                  <div className="colorize-info-text">
+                    <p>Utiliza el modelo DeOldify para agregar color a tus imágenes y videos en blanco y negro.</p>
+                    <p className="colorize-info-note">Para mejores resultados, usa imágenes con buena iluminación y contraste.</p>
+                  </div>
                 </div>
               </div>
-              <label className={`toggle-switch ${faceEnhance ? 'active' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={faceEnhance}
-                  onChange={(e) => setFaceEnhance(e.target.checked)}
-                />
-                <span className="toggle-slider" />
-              </label>
-            </div>
-          </div>
+
+              {/* Face Enhancement Option for colorization */}
+              <div className="step-card">
+                <div className="step-header">
+                  <span className="step-number">5</span>
+                  <h3 className="step-title">Opciones adicionales</h3>
+                </div>
+                <div className="toggle-container">
+                  <div className="toggle-info">
+                    <div className="toggle-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </div>
+                    <div className="toggle-text">
+                      <h4>Mejora de rostros</h4>
+                      <p>Aplica GFPGAN para mejorar rostros después de colorear (cascada)</p>
+                    </div>
+                  </div>
+                  <label className={`toggle-switch ${faceEnhance ? 'active' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={faceEnhance}
+                      onChange={(e) => setFaceEnhance(e.target.checked)}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Process Button */}

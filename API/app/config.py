@@ -43,7 +43,7 @@ class Config:
     REALESRGAN_MODEL = os.getenv("REALESRGAN_MODEL", "RealESRGAN_x4plus")
     REALESRGAN_SCALE = int(os.getenv("REALESRGAN_SCALE", 4))
     REALESRGAN_TILE_SIZE = int(os.getenv("REALESRGAN_TILE_SIZE", 512))
-    REALESRGAN_USE_GPU = os.getenv("REALESRGAN_USE_GPU", "True").lower() == "true"
+    REALESRGAN_USE_GPU = os.getenv("USE_GPU", os.getenv("REALESRGAN_USE_GPU", "True")).lower() == "true"
 
     # Storage
     MAX_IMAGE_SIZE_MB = int(os.getenv("MAX_IMAGE_SIZE_MB", 10))

@@ -23,4 +23,13 @@ export const API_ENDPOINTS = {
     INFO: '/api/info',
     MODELS: '/api/models',
   },
+  COLORIZE: {
+    INFO: '/api/colorize/info',
+    IMAGES: '/api/colorize/images',
+    IMAGES_LIST: '/api/colorize/images/list',
+    IMAGE_DETAIL: (id: string) => `/api/colorize/images/${id}`,
+    VIDEOS: '/api/colorize/videos',
+    VIDEOS_LIST: '/api/colorize/videos/list',
+    VIDEO_DETAIL: (id: string) => `/api/colorize/videos/${id}`,
+  },
 };

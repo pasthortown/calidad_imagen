@@ -37,3 +37,7 @@ temp/
 
 # Claude
 .claude/
+
+# Modelo de colorizacion pesado (descargar aparte, ver README)
+/models/
+*.onnx

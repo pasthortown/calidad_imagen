@@ -2,8 +2,9 @@
 # Dockerfile para API de Mejora de Imágenes con Real-ESRGAN
 # =============================================================================
 
-# Usar imagen base de PyTorch con soporte CUDA
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+# Usar imagen base CUDA con PyTorch 2.7+ para soporte Blackwell (sm_120)
+# RTX 5060 requiere PyTorch 2.7+ que incluye kernels para sm_120
+FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04
 
 # Metadatos
 LABEL maintainer="Image Enhancer API"
@@ -18,8 +19,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias del sistema incluyendo ffmpeg para procesamiento de video
+# Instalar Python, dependencias del sistema y ffmpeg
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-dev \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
@@ -29,14 +33,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
     libavcodec-extra \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
+
+# Instalar PyTorch 2.7 con soporte CUDA 12.8 (incluye Blackwell sm_120)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
 
 # Copiar requirements primero para aprovechar cache de Docker
 COPY requirements.txt .
 
 # Instalar dependencias de Python
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Crear directorio para modelos (weights/ es donde el código los busca)
 RUN mkdir -p /app/weights

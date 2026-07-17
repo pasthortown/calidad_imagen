@@ -1,5 +1,7 @@
 export type MediaType = 'image' | 'video';
 
+export type ProcessMode = 'enhance' | 'colorize';
+
 export type ModelType = 'general_x4' | 'general_x2' | 'anime' | 'anime_video' | 'general_v3';
 
 export interface ModelInfo {
@@ -184,5 +186,122 @@ export interface VideoDetailResponse {
   video: VideoHistoryItem & {
     original_base64: string | null;
     enhanced_base64: string | null;
+  };
+}
+
+// Colorization types
+export interface ColorizeImageRequest {
+  image_base64: string;
+  filename: string;
+  output_format?: string;
+  face_enhance?: boolean;
+}
+
+export interface ColorizeVideoRequest {
+  video_base64: string;
+  filename: string;
+  face_enhance?: boolean;
+}
+
+export interface ColorizeImageResponse {
+  message: string;
+  image: {
+    id: string;
+    original_filename: string;
+    original_width: number;
+    original_height: number;
+    colorized_width: number;
+    colorized_height: number;
+    face_enhance: boolean;
+    status: string;
+    processing_time_ms: number;
+    gpu_used: boolean;
+    created_at: string;
+    completed_at: string;
+    original_base64: string;
+    colorized_base64: string;
+    error_message: string | null;
+  };
+}
+
+export interface ColorizeVideoResponse {
+  message: string;
+  video: {
+    id: string;
+    original_filename: string;
+    status: string;
+    duration_seconds: number;
+    fps: number;
+    frame_count: number;
+    original_width: number;
+    original_height: number;
+    frames_processed: number;
+    face_enhance: boolean;
+  };
+}
+
+export interface ColorizeImageHistoryItem {
+  id: string;
+  original_filename: string;
+  description?: string;
+  original_width: number;
+  original_height: number;
+  colorized_width: number | null;
+  colorized_height: number | null;
+  face_enhance: boolean;
+  status: JobStatus;
+  processing_time_ms: number | null;
+  gpu_used: boolean | null;
+  created_at: string;
+  completed_at: string | null;
+  error_message: string | null;
+}
+
+export interface ColorizeVideoHistoryItem {
+  id: string;
+  original_filename: string;
+  description?: string;
+  original_width: number;
+  original_height: number;
+  colorized_width: number | null;
+  colorized_height: number | null;
+  face_enhance: boolean;
+  status: JobStatus;
+  duration_seconds: number;
+  fps: number;
+  frame_count: number;
+  frames_processed: number;
+  processing_time_ms: number | null;
+  gpu_used: boolean | null;
+  created_at: string;
+  completed_at: string | null;
+  error_message: string | null;
+}
+
+export interface ColorizeImageListResponse {
+  total: number;
+  page: number;
+  per_page: number;
+  images: ColorizeImageHistoryItem[];
+}
+
+export interface ColorizeVideoListResponse {
+  total: number;
+  page: number;
+  per_page: number;
+  videos: ColorizeVideoHistoryItem[];
+}
+
+export interface ColorizeImageDetailResponse {
+  image: ColorizeImageHistoryItem & {
+    original_base64: string;
+    colorized_base64: string;
+  };
+}
+
+export interface ColorizeVideoDetailResponse {
+  video: ColorizeVideoHistoryItem & {
+    original_base64: string | null;
+    colorized_base64: string | null;
   };
 }

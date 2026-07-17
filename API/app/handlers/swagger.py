@@ -25,6 +25,7 @@ OPENAPI_SPEC = {
         {"name": "Auth", "description": "Autenticacion y gestion de usuarios"},
         {"name": "Images", "description": "Procesamiento y gestion de imagenes"},
         {"name": "Videos", "description": "Procesamiento y gestion de videos"},
+        {"name": "Colorize", "description": "Colorizacion de imagenes y videos en blanco y negro"},
         {"name": "System", "description": "Estado del sistema y configuracion"}
     ],
     "paths": {
@@ -322,6 +323,234 @@ OPENAPI_SPEC = {
                 }
             }
         },
+        "/api/colorize/info": {
+            "get": {
+                "tags": ["Colorize"],
+                "summary": "Informacion del servicio de colorizacion",
+                "description": "Retorna informacion sobre el modelo de colorizacion DeOldify",
+                "responses": {
+                    "200": {
+                        "description": "Informacion del servicio",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ColorizeInfoResponse"}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/colorize/images": {
+            "post": {
+                "tags": ["Colorize"],
+                "summary": "Colorear una imagen en blanco y negro",
+                "description": "Procesa una imagen en blanco y negro con DeOldify para agregar color",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/ColorizeImageRequest"}
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Imagen coloreada exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ColorizeImageDetailResponse"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Datos invalidos"},
+                    "401": {"description": "No autorizado"}
+                }
+            }
+        },
+        "/api/colorize/images/list": {
+            "get": {
+                "tags": ["Colorize"],
+                "summary": "Listar imagenes coloreadas del usuario",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {"type": "integer", "default": 1}
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {"type": "integer", "default": 10}
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {"type": "string", "enum": ["pending", "processing", "completed", "failed"]}
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de imagenes coloreadas",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ColorizeImageListResponse"}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/colorize/images/{id}": {
+            "get": {
+                "tags": ["Colorize"],
+                "summary": "Obtener imagen coloreada por ID",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"}
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detalle de la imagen coloreada",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ColorizeImageDetailResponse"}
+                            }
+                        }
+                    },
+                    "404": {"description": "Imagen no encontrada"}
+                }
+            },
+            "delete": {
+                "tags": ["Colorize"],
+                "summary": "Eliminar imagen coloreada",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"}
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Imagen eliminada"},
+                    "404": {"description": "Imagen no encontrada"}
+                }
+            }
+        },
+        "/api/colorize/videos": {
+            "post": {
+                "tags": ["Colorize"],
+                "summary": "Colorear un video en blanco y negro",
+                "description": "Inicia el procesamiento de colorizacion de un video. El procesamiento es asincrono frame a frame.",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/ColorizeVideoRequest"}
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Video recibido, procesamiento iniciado",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ColorizeVideoResponse"}
+                            }
+                        }
+                    },
+                    "400": {"description": "Datos invalidos"},
+                    "401": {"description": "No autorizado"}
+                }
+            }
+        },
+        "/api/colorize/videos/list": {
+            "get": {
+                "tags": ["Colorize"],
+                "summary": "Listar videos coloreados del usuario",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {"type": "integer", "default": 1}
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {"type": "integer", "default": 10}
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {"type": "string", "enum": ["pending", "in_progress", "completed", "error"]}
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de videos coloreados",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ColorizeVideoListResponse"}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/colorize/videos/{id}": {
+            "get": {
+                "tags": ["Colorize"],
+                "summary": "Obtener video coloreado por ID",
+                "description": "Obtiene el detalle de un video coloreado. Si status es 'completed', incluye los videos en base64.",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"}
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detalle del video coloreado",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ColorizeVideoDetailResponse"}
+                            }
+                        }
+                    },
+                    "404": {"description": "Video no encontrado"}
+                }
+            },
+            "delete": {
+                "tags": ["Colorize"],
+                "summary": "Eliminar video coloreado",
+                "security": [{"bearerAuth": []}],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string"}
+                    }
+                ],
+                "responses": {
+                    "200": {"description": "Video eliminado"},
+                    "404": {"description": "Video no encontrado"}
+                }
+            }
+        },
         "/api/health": {
             "get": {
                 "tags": ["System"],
@@ -590,6 +819,146 @@ OPENAPI_SPEC = {
                         "type": "array",
                         "items": {"$ref": "#/components/schemas/VideoResponse"}
                     }
+                }
+            },
+            "ColorizeImageRequest": {
+                "type": "object",
+                "required": ["image_base64"],
+                "properties": {
+                    "image_base64": {
+                        "type": "string",
+                        "description": "Imagen en blanco y negro codificada en base64"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "description": "Nombre del archivo original"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Descripcion de la imagen. Si esta vacia, se genera automaticamente"
+                    },
+                    "output_format": {
+                        "type": "string",
+                        "enum": ["PNG", "JPEG"],
+                        "default": "PNG",
+                        "description": "Formato de salida"
+                    }
+                }
+            },
+            "ColorizeVideoRequest": {
+                "type": "object",
+                "required": ["video_base64", "filename"],
+                "properties": {
+                    "video_base64": {
+                        "type": "string",
+                        "description": "Video en blanco y negro codificado en base64"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "description": "Nombre del archivo original con extension"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Descripcion del video. Si esta vacia, se genera automaticamente"
+                    }
+                }
+            },
+            "ColorizeImageResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "original_filename": {"type": "string"},
+                    "description": {"type": "string"},
+                    "original_width": {"type": "integer"},
+                    "original_height": {"type": "integer"},
+                    "colorized_width": {"type": "integer"},
+                    "colorized_height": {"type": "integer"},
+                    "status": {"type": "string", "enum": ["pending", "processing", "completed", "failed"]},
+                    "processing_time_ms": {"type": "integer"},
+                    "gpu_used": {"type": "boolean"},
+                    "created_at": {"type": "string", "format": "date-time"},
+                    "completed_at": {"type": "string", "format": "date-time"}
+                }
+            },
+            "ColorizeImageDetailResponse": {
+                "allOf": [
+                    {"$ref": "#/components/schemas/ColorizeImageResponse"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "original_base64": {"type": "string"},
+                            "colorized_base64": {"type": "string"},
+                            "error_message": {"type": "string"}
+                        }
+                    }
+                ]
+            },
+            "ColorizeImageListResponse": {
+                "type": "object",
+                "properties": {
+                    "total": {"type": "integer"},
+                    "page": {"type": "integer"},
+                    "per_page": {"type": "integer"},
+                    "images": {
+                        "type": "array",
+                        "items": {"$ref": "#/components/schemas/ColorizeImageResponse"}
+                    }
+                }
+            },
+            "ColorizeVideoResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "original_filename": {"type": "string"},
+                    "description": {"type": "string"},
+                    "original_width": {"type": "integer"},
+                    "original_height": {"type": "integer"},
+                    "colorized_width": {"type": "integer"},
+                    "colorized_height": {"type": "integer"},
+                    "duration_seconds": {"type": "number"},
+                    "fps": {"type": "number"},
+                    "frame_count": {"type": "integer"},
+                    "status": {"type": "string", "enum": ["pending", "in_progress", "completed", "error"]},
+                    "error_message": {"type": "string"},
+                    "processing_time_ms": {"type": "integer"},
+                    "gpu_used": {"type": "boolean"},
+                    "frames_processed": {"type": "integer"},
+                    "created_at": {"type": "string", "format": "date-time"},
+                    "completed_at": {"type": "string", "format": "date-time"}
+                }
+            },
+            "ColorizeVideoDetailResponse": {
+                "allOf": [
+                    {"$ref": "#/components/schemas/ColorizeVideoResponse"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "original_base64": {"type": "string"},
+                            "colorized_base64": {"type": "string"}
+                        }
+                    }
+                ]
+            },
+            "ColorizeVideoListResponse": {
+                "type": "object",
+                "properties": {
+                    "total": {"type": "integer"},
+                    "page": {"type": "integer"},
+                    "per_page": {"type": "integer"},
+                    "videos": {
+                        "type": "array",
+                        "items": {"$ref": "#/components/schemas/ColorizeVideoResponse"}
+                    }
+                }
+            },
+            "ColorizeInfoResponse": {
+                "type": "object",
+                "properties": {
+                    "model_type": {"type": "string"},
+                    "render_factor": {"type": "integer"},
+                    "device": {"type": "string"},
+                    "gpu_available": {"type": "boolean"},
+                    "model_loaded": {"type": "boolean"}
                 }
             },
             "HealthResponse": {
